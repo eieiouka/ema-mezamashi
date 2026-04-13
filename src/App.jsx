@@ -9,9 +9,7 @@ export default function App() {
   const [isArmed, setIsArmed] = useState(false);
   const [isRinging, setIsRinging] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
-  const [message, setMessage] = useState("アラーム未設定");
-  const [holdProgress, setHoldProgress] = useState(0);
-  const [isHolding, setIsHolding] = useState(false);
+  const [message, setMessage] = useState("未セット");
   const [showHoldVideo, setShowHoldVideo] = useState(false);
   const [showFinishVideo, setShowFinishVideo] = useState(false);
   const [stopScheduled, setStopScheduled] = useState(false);
@@ -19,12 +17,10 @@ export default function App() {
   const audioRef = useRef(null);
   const holdVideoRef = useRef(null);
   const finishVideoRef = useRef(null);
-  const stopButtonRef = useRef(null);
 
   const holdIntervalRef = useRef(null);
   const holdStartTimeRef = useRef(null);
   const stopDelayTimeoutRef = useRef(null);
-  const stoppedByLongPressRef = useRef(false);
   const activePointerIdRef = useRef(null);
 
   useEffect(() => {
@@ -48,9 +44,8 @@ export default function App() {
       const now = new Date();
       const h = String(now.getHours()).padStart(2, "0");
       const m = String(now.getMinutes()).padStart(2, "0");
-      const nowTime = `${h}:${m}`;
 
-      if (nowTime === alarmTime) {
+      if (`${h}:${m}` === alarmTime) {
         ringAlarm();
       }
     }, 1000);
@@ -58,22 +53,14 @@ export default function App() {
     return () => clearInterval(timer);
   }, [isArmed, alarmTime]);
 
-  useEffect(() => {
-    return () => {
-      clearHoldTimer();
-      clearStopDelayTimeout();
-    };
-  }, []);
-
   const clearHoldTimer = () => {
     if (holdIntervalRef.current) {
       clearInterval(holdIntervalRef.current);
       holdIntervalRef.current = null;
     }
-    holdStartTimeRef.current = null;
   };
 
-  const clearStopDelayTimeout = () => {
+  const clearStopDelay = () => {
     if (stopDelayTimeoutRef.current) {
       clearTimeout(stopDelayTimeoutRef.current);
       stopDelayTimeoutRef.current = null;
@@ -92,64 +79,31 @@ export default function App() {
     finishVideoRef.current.currentTime = 0;
   };
 
-  const freezeVideoOnLastFrame = (videoElement) => {
-    if (!videoElement) return;
-
-    const safeTime = Math.max((videoElement.duration || 0) - 0.05, 0);
-    videoElement.pause();
-
-    if (Number.isFinite(safeTime)) {
-      videoElement.currentTime = safeTime;
-    }
+  const playHoldVideo = async () => {
+    const v = holdVideoRef.current;
+    if (!v) return;
+    v.currentTime = 0;
+    try { await v.play(); } catch {}
   };
 
-  const playHoldVideoFromStart = async () => {
-    if (!holdVideoRef.current) return;
-
-    const video = holdVideoRef.current;
-    video.pause();
-    video.currentTime = 0;
-
-    try {
-      await video.play();
-    } catch {
-      setMessage("下の動画の再生に失敗した");
-    }
-  };
-
-  const playFinishVideoFromStart = async () => {
-    if (!finishVideoRef.current) return;
-
-    const video = finishVideoRef.current;
-    video.pause();
-    video.currentTime = 0;
-
-    try {
-      await video.play();
-    } catch {
-      setMessage("上の動画の再生に失敗した");
-    }
+  const playFinishVideo = async () => {
+    const v = finishVideoRef.current;
+    if (!v) return;
+    v.currentTime = 0;
+    try { await v.play(); } catch {}
   };
 
   const setAlarm = () => {
-    if (!alarmTime) {
-      setMessage("時刻を設定しろ");
-      return;
-    }
+    if (!alarmTime) return;
 
     clearHoldTimer();
-    clearStopDelayTimeout();
+    clearStopDelay();
 
     setIsArmed(true);
     setIsRinging(false);
-    setIsHolding(false);
     setShowHoldVideo(false);
     setShowFinishVideo(false);
     setStopScheduled(false);
-    setHoldProgress(0);
-
-    activePointerIdRef.current = null;
-    stoppedByLongPressRef.current = false;
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -159,176 +113,92 @@ export default function App() {
     resetHoldVideo();
     resetFinishVideo();
 
-    setMessage(`${alarmTime} にセットした`);
+    setMessage(`${alarmTime} にセット`);
   };
 
   const ringAlarm = async () => {
     if (isRinging) return;
 
-    clearHoldTimer();
-    clearStopDelayTimeout();
-
-    stoppedByLongPressRef.current = false;
-    activePointerIdRef.current = null;
-
     setIsRinging(true);
     setIsArmed(false);
-    setIsHolding(false);
-    setShowHoldVideo(false);
     setShowFinishVideo(false);
-    setStopScheduled(false);
-    setHoldProgress(0);
 
-    resetHoldVideo();
-    resetFinishVideo();
-
-    setMessage("鳴ってるぞ（6秒長押しで停止予約）");
+    setMessage("鳴っています");
 
     if (audioRef.current) {
-      audioRef.current.currentTime = 0;
       audioRef.current.loop = true;
-
-      try {
-        await audioRef.current.play();
-      } catch {
-        setMessage("タップしてから再生しろ");
-      }
+      audioRef.current.currentTime = 0;
+      try { await audioRef.current.play(); } catch {}
     }
   };
 
-  const completeStopSequence = async () => {
+  const completeStop = async () => {
     setIsRinging(false);
-    setIsHolding(false);
-    setStopScheduled(false);
     setShowFinishVideo(true);
-
-    activePointerIdRef.current = null;
 
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
 
-    setMessage("アラーム停止。上の動画を再生中");
-    await playFinishVideoFromStart();
+    setMessage("停止しました");
+
+    await playFinishVideo();
   };
 
-  const scheduleAlarmStop = () => {
-    clearStopDelayTimeout();
+  const scheduleStop = () => {
     setStopScheduled(true);
-    setMessage("6秒達成。2秒後に停止");
-
-    stopDelayTimeoutRef.current = setTimeout(() => {
-      completeStopSequence();
-    }, STOP_DELAY_MS);
+    stopDelayTimeoutRef.current = setTimeout(completeStop, STOP_DELAY_MS);
   };
 
-  const startHoldCore = async () => {
-    stoppedByLongPressRef.current = false;
-    setIsHolding(true);
+  const startHold = async () => {
     setShowHoldVideo(true);
-    setMessage("そのまま6秒押し続けろ");
-
-    await playHoldVideoFromStart();
+    await playHoldVideo();
 
     holdStartTimeRef.current = Date.now();
 
     holdIntervalRef.current = setInterval(() => {
-      const elapsedMs = Date.now() - holdStartTimeRef.current;
-      const progress = Math.min(elapsedMs / (HOLD_SECONDS * 1000), 1);
-
-      setHoldProgress(progress);
-
-      if (progress >= 1) {
-        stoppedByLongPressRef.current = true;
+      const elapsed = Date.now() - holdStartTimeRef.current;
+      if (elapsed >= HOLD_SECONDS * 1000) {
         clearHoldTimer();
-        setIsHolding(false);
-        setHoldProgress(1);
-        scheduleAlarmStop();
+        scheduleStop();
       }
     }, 50);
   };
 
-  const cancelHoldCore = () => {
-    if (!isRinging) return;
-    if (stopScheduled) return;
-
+  const cancelHold = () => {
     clearHoldTimer();
-    setIsHolding(false);
-
-    if (!stoppedByLongPressRef.current) {
-      setHoldProgress(0);
-      setShowHoldVideo(false);
-      resetHoldVideo();
-      setMessage("離したのでリセットされた");
-    }
+    setShowHoldVideo(false);
+    resetHoldVideo();
   };
 
-  const handlePointerDown = async (event) => {
-    event.preventDefault();
+  const handleDown = async (e) => {
+    e.preventDefault();
+    if (!isRinging || stopScheduled) return;
 
-    if (!isRinging) return;
-    if (stopScheduled) return;
-    if (holdIntervalRef.current) return;
-    if (activePointerIdRef.current !== null) return;
+    activePointerIdRef.current = e.pointerId;
+    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
 
-    activePointerIdRef.current = event.pointerId;
-
-    try {
-      event.currentTarget.setPointerCapture(event.pointerId);
-    } catch {
-      // 取れない環境でも続行
-    }
-
-    await startHoldCore();
+    await startHold();
   };
 
-  const handlePointerUp = (event) => {
-    if (activePointerIdRef.current !== event.pointerId) return;
-
-    try {
-      event.currentTarget.releasePointerCapture(event.pointerId);
-    } catch {
-      // 無視
-    }
-
+  const handleUp = (e) => {
+    if (activePointerIdRef.current !== e.pointerId) return;
     activePointerIdRef.current = null;
-    cancelHoldCore();
+    cancelHold();
   };
 
-  const handlePointerCancel = (event) => {
-    if (activePointerIdRef.current !== event.pointerId) return;
-
+  const handleCancel = () => {
     activePointerIdRef.current = null;
-    cancelHoldCore();
-  };
-
-  const handleLostPointerCapture = () => {
-    if (activePointerIdRef.current === null) return;
-    activePointerIdRef.current = null;
-    cancelHoldCore();
-  };
-
-  const handleHoldVideoEnded = () => {
-    freezeVideoOnLastFrame(holdVideoRef.current);
-  };
-
-  const handleFinishVideoEnded = () => {
-    freezeVideoOnLastFrame(finishVideoRef.current);
-    setMessage("上の動画の再生が終わった");
+    cancelHold();
   };
 
   return (
     <div className="app">
       <div className="alarm-screen">
+
         <div className="top-panel">
-          <p className="app-name">ema-mezamashi</p>
-
-          <p className="label">現在時刻</p>
           <p className="current-time">{currentTime}</p>
-
-          <p className="label">アラーム</p>
-          <p className="alarm-time">{alarmTime || "--:--"}</p>
 
           <input
             type="time"
@@ -337,35 +207,33 @@ export default function App() {
             className="time-input"
           />
 
-          <button className="set-btn" onClick={setAlarm}>
+          <button onClick={setAlarm} className="set-btn">
             セット
           </button>
 
-          <p className="status">{message}</p>
+          <p>{message}</p>
         </div>
 
         <div className="bottom-area">
+
           <div className="character-wrapper">
             <img
-              src="/character.png"
-              alt="character"
-              className={`character-media character-image ${showFinishVideo ? "media-hidden" : "media-visible"}`}
+              src={isRinging ? "/character.png" : "/character_idle.png"}
+              className={`top-visual ${showFinishVideo ? "media-hidden" : "media-visible"}`}
             />
 
             <video
               ref={finishVideoRef}
-              className={`character-media finish-video ${showFinishVideo ? "media-visible" : "media-hidden"}`}
+              className={`top-visual finish-video ${showFinishVideo ? "media-visible" : "media-hidden"}`}
               src="/finish.mp4"
               playsInline
               preload="auto"
-              onEnded={handleFinishVideoEnded}
             />
           </div>
 
           <div className="stop-wrapper">
             <img
               src="/base.png"
-              alt="base"
               className={`stop-media ${showHoldVideo ? "media-hidden" : "media-visible"}`}
             />
 
@@ -375,24 +243,20 @@ export default function App() {
               src="/hold.mp4"
               playsInline
               muted
-              preload="auto"
-              onEnded={handleHoldVideoEnded}
             />
 
             <button
-              ref={stopButtonRef}
               className="stop-btn"
-              onPointerDown={handlePointerDown}
-              onPointerUp={handlePointerUp}
-              onPointerCancel={handlePointerCancel}
-              onLostPointerCapture={handleLostPointerCapture}
-            >
-              <span className="sr-only">stop button</span>
-            </button>
+              onPointerDown={handleDown}
+              onPointerUp={handleUp}
+              onPointerCancel={handleCancel}
+            />
           </div>
+
         </div>
 
-        <audio ref={audioRef} src="/alarm.wav" preload="auto" />
+        <audio ref={audioRef} src="/alarm.wav" />
+
       </div>
     </div>
   );
