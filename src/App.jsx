@@ -85,6 +85,7 @@ export default function App() {
     const v = holdVideoRef.current;
     if (!v) return;
     v.currentTime = 0;
+
     try {
       await v.play();
     } catch {}
@@ -94,12 +95,25 @@ export default function App() {
     const v = finishVideoRef.current;
     if (!v) return;
     v.currentTime = 0;
+
     try {
       await v.play();
     } catch {}
   };
 
-  const setAlarm = () => {
+  const unlockAlarmAudio = async () => {
+    if (!audioRef.current) return;
+
+    try {
+      await audioRef.current.play();
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    } catch (error) {
+      console.log("audio unlock failed:", error);
+    }
+  };
+
+  const setAlarm = async () => {
     clearHoldTimer();
     clearStopDelay();
 
@@ -110,6 +124,8 @@ export default function App() {
     setStopScheduled(false);
     setShowStopUi(false);
 
+    activePointerIdRef.current = null;
+
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -117,6 +133,8 @@ export default function App() {
 
     resetHoldVideo();
     resetFinishVideo();
+
+    await unlockAlarmAudio();
 
     setMessage(`${alarmTime} にセット`);
   };
@@ -139,9 +157,12 @@ export default function App() {
     if (audioRef.current) {
       audioRef.current.loop = true;
       audioRef.current.currentTime = 0;
+
       try {
         await audioRef.current.play();
-      } catch {}
+      } catch (error) {
+        console.log("alarm play failed:", error);
+      }
     }
   };
 
@@ -197,6 +218,7 @@ export default function App() {
     if (!isRinging || stopScheduled) return;
 
     activePointerIdRef.current = e.pointerId;
+
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
@@ -206,6 +228,7 @@ export default function App() {
 
   const handleUp = (e) => {
     if (activePointerIdRef.current !== e.pointerId) return;
+
     activePointerIdRef.current = null;
     cancelHold();
   };
@@ -291,7 +314,7 @@ export default function App() {
           )}
         </div>
 
-        <audio ref={audioRef} src="/alarm.wav" />
+        <audio ref={audioRef} src="/alarm.wav" preload="auto" />
       </div>
     </div>
   );
