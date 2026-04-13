@@ -5,15 +5,13 @@
 body {
   margin: 0;
   font-family: sans-serif;
-  background: white; /* ←スマホで余白消す */
+  background: white;
 }
 
-/* 全体 */
 .app {
   width: 100%;
 }
 
-/* 画面 */
 .alarm-screen {
   width: 100%;
   min-height: 100vh;
@@ -22,7 +20,6 @@ body {
   flex-direction: column;
 }
 
-/* 上 */
 .top-panel {
   padding: 20px;
 }
@@ -35,6 +32,7 @@ body {
 .label {
   font-size: 12px;
   color: #777;
+  margin: 0;
 }
 
 .current-time {
@@ -46,7 +44,7 @@ body {
 .alarm-time {
   font-size: 26px;
   font-weight: bold;
-  margin-bottom: 14px;
+  margin: 4px 0 14px;
 }
 
 .time-input {
@@ -55,6 +53,7 @@ body {
   border-radius: 10px;
   border: 1px solid #ddd;
   margin-bottom: 12px;
+  font: inherit;
 }
 
 .set-btn {
@@ -65,6 +64,7 @@ body {
   background: #222;
   color: white;
   font-weight: bold;
+  font: inherit;
 }
 
 .status {
@@ -72,9 +72,9 @@ body {
   font-size: 13px;
   margin-top: 10px;
   color: #555;
+  line-height: 1.5;
 }
 
-/* 下エリア */
 .bottom-area {
   flex: 1;
   display: flex;
@@ -83,14 +83,34 @@ body {
   justify-content: flex-end;
 }
 
-/* キャラ（横幅いっぱい） */
-.character {
+/* 上の画像・動画 */
+.character-wrapper {
+  position: relative;
   width: 100%;
-  max-width: none;
-  display: block;
+  overflow: hidden;
 }
 
-/* 土台（画面サイズ連動） */
+.character-media {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.character-image {
+  position: relative;
+  z-index: 0;
+}
+
+.finish-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 1;
+}
+
+/* 下の画像・動画 */
 .stop-wrapper {
   position: relative;
   width: 70vw;
@@ -98,16 +118,18 @@ body {
   max-width: 400px;
   max-height: 400px;
   margin-bottom: 20px;
+  overflow: hidden;
 }
 
-/* 土台画像 */
-.stop-base {
+.stop-media {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  display: block;
   object-fit: contain;
 }
 
-/* ボタン（中央重ね） */
 .stop-btn {
   position: absolute;
   top: 50%;
@@ -118,12 +140,35 @@ body {
   height: 50%;
   border-radius: 50%;
   border: none;
-
-  background: rgba(255, 92, 92, 0.9);
-  color: white;
-  font-size: 5vw;
-  font-weight: bold;
-
+  background: transparent;
+  color: transparent;
+  box-shadow: none;
   cursor: pointer;
-  box-shadow: 0 12px 30px rgba(255, 92, 92, 0.35);
+  z-index: 2;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* display:none ではなく opacity で切り替える */
+.media-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.media-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
 }
