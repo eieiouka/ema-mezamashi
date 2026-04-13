@@ -110,8 +110,6 @@ export default function App() {
     setStopScheduled(false);
     setShowStopUi(false);
 
-    activePointerIdRef.current = null;
-
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -228,9 +226,14 @@ export default function App() {
             value={alarmTime}
             onChange={(e) => setAlarmTime(e.target.value)}
             className="time-input"
+            disabled={isRinging}
           />
 
-          <button onClick={setAlarm} className="set-btn">
+          <button
+            onClick={setAlarm}
+            className="set-btn"
+            disabled={isRinging}
+          >
             セット
           </button>
 
@@ -241,13 +244,17 @@ export default function App() {
           <div className="character-wrapper">
             <img
               src={isRinging ? "/character.png" : "/character_idle.png"}
-              className={`top-visual ${showFinishVideo ? "media-hidden" : "media-visible"}`}
+              className={`top-visual ${
+                showFinishVideo ? "media-hidden" : "media-visible"
+              }`}
               alt="character"
             />
 
             <video
               ref={finishVideoRef}
-              className={`top-visual finish-video ${showFinishVideo ? "media-visible" : "media-hidden"}`}
+              className={`top-visual finish-video ${
+                showFinishVideo ? "media-visible" : "media-hidden"
+              }`}
               src="/finish.mp4"
               playsInline
               preload="auto"
@@ -258,13 +265,17 @@ export default function App() {
             <div className="stop-wrapper">
               <img
                 src="/base.png"
-                className={`stop-media ${showHoldVideo ? "media-hidden" : "media-visible"}`}
+                className={`stop-media ${
+                  showHoldVideo ? "media-hidden" : "media-visible"
+                }`}
                 alt="base"
               />
 
               <video
                 ref={holdVideoRef}
-                className={`stop-media ${showHoldVideo ? "media-visible" : "media-hidden"}`}
+                className={`stop-media ${
+                  showHoldVideo ? "media-visible" : "media-hidden"
+                }`}
                 src="/hold.mp4"
                 playsInline
                 muted

@@ -175,3 +175,9 @@ body {
   border: 0;
   white-space: nowrap;
 }
+
+.time-input:disabled,
+.set-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
