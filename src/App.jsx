@@ -5,7 +5,7 @@ const HOLD_SECONDS = 6;
 const STOP_DELAY_MS = 2000;
 
 export default function App() {
-  const [alarmTime, setAlarmTime] = useState("");
+  const [alarmTime, setAlarmTime] = useState("07:00");
   const [isArmed, setIsArmed] = useState(false);
   const [isRinging, setIsRinging] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
