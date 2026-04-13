@@ -10,9 +10,11 @@ export default function App() {
   const [isRinging, setIsRinging] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const [message, setMessage] = useState("未セット");
+
   const [showHoldVideo, setShowHoldVideo] = useState(false);
   const [showFinishVideo, setShowFinishVideo] = useState(false);
   const [stopScheduled, setStopScheduled] = useState(false);
+  const [showStopUi, setShowStopUi] = useState(false);
 
   const audioRef = useRef(null);
   const holdVideoRef = useRef(null);
@@ -38,7 +40,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!isArmed || !alarmTime) return;
+    if (!isArmed) return;
 
     const timer = setInterval(() => {
       const now = new Date();
@@ -98,8 +100,6 @@ export default function App() {
   };
 
   const setAlarm = () => {
-    if (!alarmTime) return;
-
     clearHoldTimer();
     clearStopDelay();
 
@@ -108,6 +108,9 @@ export default function App() {
     setShowHoldVideo(false);
     setShowFinishVideo(false);
     setStopScheduled(false);
+    setShowStopUi(false);
+
+    activePointerIdRef.current = null;
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -123,14 +126,15 @@ export default function App() {
   const ringAlarm = async () => {
     if (isRinging) return;
 
+    clearHoldTimer();
+    clearStopDelay();
+
     setIsRinging(true);
     setIsArmed(false);
     setShowFinishVideo(false);
     setShowHoldVideo(false);
     setStopScheduled(false);
-
-    resetHoldVideo();
-    resetFinishVideo();
+    setShowStopUi(true);
 
     setMessage("鳴っています");
 
@@ -146,6 +150,7 @@ export default function App() {
   const completeStop = async () => {
     setIsRinging(false);
     setShowFinishVideo(true);
+    setShowStopUi(true);
 
     if (audioRef.current) {
       audioRef.current.pause();
@@ -171,6 +176,7 @@ export default function App() {
 
     holdIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - holdStartTimeRef.current;
+
       if (elapsed >= HOLD_SECONDS * 1000) {
         clearHoldTimer();
         scheduleStop();
@@ -180,12 +186,16 @@ export default function App() {
 
   const cancelHold = () => {
     clearHoldTimer();
+
+    if (stopScheduled) return;
+
     setShowHoldVideo(false);
     resetHoldVideo();
   };
 
   const handleDown = async (e) => {
     e.preventDefault();
+
     if (!isRinging || stopScheduled) return;
 
     activePointerIdRef.current = e.pointerId;
@@ -199,17 +209,11 @@ export default function App() {
   const handleUp = (e) => {
     if (activePointerIdRef.current !== e.pointerId) return;
     activePointerIdRef.current = null;
-
-    if (stopScheduled) return;
-
     cancelHold();
   };
 
   const handleCancel = () => {
     activePointerIdRef.current = null;
-
-    if (stopScheduled) return;
-
     cancelHold();
   };
 
@@ -250,28 +254,30 @@ export default function App() {
             />
           </div>
 
-          <div className="stop-wrapper">
-            <img
-              src="/base.png"
-              className={`stop-media ${showHoldVideo ? "media-hidden" : "media-visible"}`}
-              alt="base"
-            />
+          {showStopUi && (
+            <div className="stop-wrapper">
+              <img
+                src="/base.png"
+                className={`stop-media ${showHoldVideo ? "media-hidden" : "media-visible"}`}
+                alt="base"
+              />
 
-            <video
-              ref={holdVideoRef}
-              className={`stop-media ${showHoldVideo ? "media-visible" : "media-hidden"}`}
-              src="/hold.mp4"
-              playsInline
-              muted
-            />
+              <video
+                ref={holdVideoRef}
+                className={`stop-media ${showHoldVideo ? "media-visible" : "media-hidden"}`}
+                src="/hold.mp4"
+                playsInline
+                muted
+              />
 
-            <button
-              className="stop-btn"
-              onPointerDown={handleDown}
-              onPointerUp={handleUp}
-              onPointerCancel={handleCancel}
-            />
-          </div>
+              <button
+                className="stop-btn"
+                onPointerDown={handleDown}
+                onPointerUp={handleUp}
+                onPointerCancel={handleCancel}
+              />
+            </div>
+          )}
         </div>
 
         <audio ref={audioRef} src="/alarm.wav" />
