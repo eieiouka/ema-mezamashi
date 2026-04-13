@@ -83,14 +83,18 @@ export default function App() {
     const v = holdVideoRef.current;
     if (!v) return;
     v.currentTime = 0;
-    try { await v.play(); } catch {}
+    try {
+      await v.play();
+    } catch {}
   };
 
   const playFinishVideo = async () => {
     const v = finishVideoRef.current;
     if (!v) return;
     v.currentTime = 0;
-    try { await v.play(); } catch {}
+    try {
+      await v.play();
+    } catch {}
   };
 
   const setAlarm = () => {
@@ -122,13 +126,20 @@ export default function App() {
     setIsRinging(true);
     setIsArmed(false);
     setShowFinishVideo(false);
+    setShowHoldVideo(false);
+    setStopScheduled(false);
+
+    resetHoldVideo();
+    resetFinishVideo();
 
     setMessage("鳴っています");
 
     if (audioRef.current) {
       audioRef.current.loop = true;
       audioRef.current.currentTime = 0;
-      try { await audioRef.current.play(); } catch {}
+      try {
+        await audioRef.current.play();
+      } catch {}
     }
   };
 
@@ -153,6 +164,7 @@ export default function App() {
 
   const startHold = async () => {
     setShowHoldVideo(true);
+
     await playHoldVideo();
 
     holdStartTimeRef.current = Date.now();
@@ -177,7 +189,9 @@ export default function App() {
     if (!isRinging || stopScheduled) return;
 
     activePointerIdRef.current = e.pointerId;
-    try { e.currentTarget.setPointerCapture(e.pointerId); } catch {}
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
 
     await startHold();
   };
@@ -185,18 +199,23 @@ export default function App() {
   const handleUp = (e) => {
     if (activePointerIdRef.current !== e.pointerId) return;
     activePointerIdRef.current = null;
+
+    if (stopScheduled) return;
+
     cancelHold();
   };
 
   const handleCancel = () => {
     activePointerIdRef.current = null;
+
+    if (stopScheduled) return;
+
     cancelHold();
   };
 
   return (
     <div className="app">
       <div className="alarm-screen">
-
         <div className="top-panel">
           <p className="current-time">{currentTime}</p>
 
@@ -215,11 +234,11 @@ export default function App() {
         </div>
 
         <div className="bottom-area">
-
           <div className="character-wrapper">
             <img
               src={isRinging ? "/character.png" : "/character_idle.png"}
               className={`top-visual ${showFinishVideo ? "media-hidden" : "media-visible"}`}
+              alt="character"
             />
 
             <video
@@ -235,6 +254,7 @@ export default function App() {
             <img
               src="/base.png"
               className={`stop-media ${showHoldVideo ? "media-hidden" : "media-visible"}`}
+              alt="base"
             />
 
             <video
@@ -252,11 +272,9 @@ export default function App() {
               onPointerCancel={handleCancel}
             />
           </div>
-
         </div>
 
         <audio ref={audioRef} src="/alarm.wav" />
-
       </div>
     </div>
   );
