@@ -83,7 +83,6 @@ body {
   justify-content: flex-end;
 }
 
-/* 上の画像・動画 */
 .character-wrapper {
   position: relative;
   width: 100%;
@@ -110,7 +109,6 @@ body {
   z-index: 1;
 }
 
-/* 下の画像・動画 */
 .stop-wrapper {
   position: relative;
   width: 70vw;
@@ -135,7 +133,6 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-
   width: 50%;
   height: 50%;
   border-radius: 50%;
@@ -145,12 +142,12 @@ body {
   box-shadow: none;
   cursor: pointer;
   z-index: 2;
-  touch-action: manipulation;
+  touch-action: none;
   user-select: none;
   -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
-/* display:none ではなく opacity で切り替える */
 .media-visible {
   opacity: 1;
   pointer-events: auto;

@@ -19,10 +19,13 @@ export default function App() {
   const audioRef = useRef(null);
   const holdVideoRef = useRef(null);
   const finishVideoRef = useRef(null);
+  const stopButtonRef = useRef(null);
+
   const holdIntervalRef = useRef(null);
   const holdStartTimeRef = useRef(null);
   const stopDelayTimeoutRef = useRef(null);
   const stoppedByLongPressRef = useRef(false);
+  const activePointerIdRef = useRef(null);
 
   useEffect(() => {
     const update = () => {
@@ -145,6 +148,9 @@ export default function App() {
     setStopScheduled(false);
     setHoldProgress(0);
 
+    activePointerIdRef.current = null;
+    stoppedByLongPressRef.current = false;
+
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -163,6 +169,8 @@ export default function App() {
     clearStopDelayTimeout();
 
     stoppedByLongPressRef.current = false;
+    activePointerIdRef.current = null;
+
     setIsRinging(true);
     setIsArmed(false);
     setIsHolding(false);
@@ -194,13 +202,14 @@ export default function App() {
     setStopScheduled(false);
     setShowFinishVideo(true);
 
+    activePointerIdRef.current = null;
+
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
 
     setMessage("アラーム停止。上の動画を再生中");
-
     await playFinishVideoFromStart();
   };
 
@@ -214,13 +223,7 @@ export default function App() {
     }, STOP_DELAY_MS);
   };
 
-  const startHoldToStop = async (event) => {
-    event.preventDefault();
-
-    if (!isRinging) return;
-    if (stopScheduled) return;
-    if (holdIntervalRef.current) return;
-
+  const startHoldCore = async () => {
     stoppedByLongPressRef.current = false;
     setIsHolding(true);
     setShowHoldVideo(true);
@@ -246,7 +249,7 @@ export default function App() {
     }, 50);
   };
 
-  const cancelHoldToStop = () => {
+  const cancelHoldCore = () => {
     if (!isRinging) return;
     if (stopScheduled) return;
 
@@ -259,6 +262,51 @@ export default function App() {
       resetHoldVideo();
       setMessage("離したのでリセットされた");
     }
+  };
+
+  const handlePointerDown = async (event) => {
+    event.preventDefault();
+
+    if (!isRinging) return;
+    if (stopScheduled) return;
+    if (holdIntervalRef.current) return;
+    if (activePointerIdRef.current !== null) return;
+
+    activePointerIdRef.current = event.pointerId;
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // 取れない環境でも続行
+    }
+
+    await startHoldCore();
+  };
+
+  const handlePointerUp = (event) => {
+    if (activePointerIdRef.current !== event.pointerId) return;
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // 無視
+    }
+
+    activePointerIdRef.current = null;
+    cancelHoldCore();
+  };
+
+  const handlePointerCancel = (event) => {
+    if (activePointerIdRef.current !== event.pointerId) return;
+
+    activePointerIdRef.current = null;
+    cancelHoldCore();
+  };
+
+  const handleLostPointerCapture = () => {
+    if (activePointerIdRef.current === null) return;
+    activePointerIdRef.current = null;
+    cancelHoldCore();
   };
 
   const handleHoldVideoEnded = () => {
@@ -326,18 +374,18 @@ export default function App() {
               className={`stop-media ${showHoldVideo ? "media-visible" : "media-hidden"}`}
               src="/hold.mp4"
               playsInline
+              muted
               preload="auto"
               onEnded={handleHoldVideoEnded}
             />
 
             <button
+              ref={stopButtonRef}
               className="stop-btn"
-              onMouseDown={startHoldToStop}
-              onMouseUp={cancelHoldToStop}
-              onMouseLeave={cancelHoldToStop}
-              onTouchStart={startHoldToStop}
-              onTouchEnd={cancelHoldToStop}
-              onTouchCancel={cancelHoldToStop}
+              onPointerDown={handlePointerDown}
+              onPointerUp={handlePointerUp}
+              onPointerCancel={handlePointerCancel}
+              onLostPointerCapture={handleLostPointerCapture}
             >
               <span className="sr-only">stop button</span>
             </button>
