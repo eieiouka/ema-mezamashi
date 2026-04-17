@@ -182,3 +182,15 @@ body {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.execution-count {
+  text-align: center;
+  font-size: clamp(24px, 6vw, 42px);
+  font-weight: 900;
+  margin: 10px 0 20px;
+  color: #000; /* ←黒にする */
+}
+
+.count-number {
+  color: #ff2d55; /* ←数字だけ赤 */
+}

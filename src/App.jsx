@@ -1,5 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import { db } from "./firebase";
+import {
+  doc,
+  updateDoc,
+  increment,
+  onSnapshot,
+} from "firebase/firestore";
 
 const HOLD_SECONDS = 6;
 const STOP_DELAY_MS = 2000;
@@ -10,6 +17,7 @@ export default function App() {
   const [isRinging, setIsRinging] = useState(false);
   const [currentTime, setCurrentTime] = useState("");
   const [message, setMessage] = useState("未セット");
+  const [stopCount, setStopCount] = useState(0);
 
   const [showHoldVideo, setShowHoldVideo] = useState(false);
   const [showFinishVideo, setShowFinishVideo] = useState(false);
@@ -54,6 +62,18 @@ export default function App() {
 
     return () => clearInterval(timer);
   }, [isArmed, alarmTime]);
+
+  useEffect(() => {
+    const ref = doc(db, "stats", "alarm");
+
+    const unsubscribe = onSnapshot(ref, (snap) => {
+      if (snap.exists()) {
+        setStopCount(snap.data().count ?? 0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   const clearHoldTimer = () => {
     if (holdIntervalRef.current) {
@@ -176,6 +196,11 @@ export default function App() {
       audioRef.current.currentTime = 0;
     }
 
+    const ref = doc(db, "stats", "alarm");
+    await updateDoc(ref, {
+      count: increment(1),
+    });
+
     setMessage("停止しました");
 
     await playFinishVideo();
@@ -243,6 +268,9 @@ export default function App() {
       <div className="alarm-screen">
         <div className="top-panel">
           <p className="current-time">{currentTime}</p>
+          <p className="execution-count">
+            処刑回数：<span className="count-number">{stopCount}</span>回
+          </p>
 
           <input
             type="time"
@@ -309,7 +337,9 @@ export default function App() {
                 onPointerDown={handleDown}
                 onPointerUp={handleUp}
                 onPointerCancel={handleCancel}
-              />
+              >
+                <span className="sr-only">停止ボタン</span>
+              </button>
             </div>
           )}
         </div>
