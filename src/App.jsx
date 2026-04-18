@@ -295,7 +295,7 @@ export default function App() {
           <p className="current-time">{currentTime}</p>
 
           <p className="execution-count">
-            処刑回数：<span className="count-number">{stopCount}</span>回
+            みんなの処刑回数：<span className="count-number">{stopCount}</span>回
           </p>
 
           <input
