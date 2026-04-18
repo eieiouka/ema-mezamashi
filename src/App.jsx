@@ -5,7 +5,7 @@ import {
   doc,
   updateDoc,
   increment,
-  onSnapshot,
+  getDoc,
 } from "firebase/firestore";
 
 const HOLD_SECONDS = 6;
@@ -64,15 +64,18 @@ export default function App() {
   }, [isArmed, alarmTime]);
 
   useEffect(() => {
-    const ref = doc(db, "stats", "alarm");
-
-    const unsubscribe = onSnapshot(ref, (snap) => {
-      if (snap.exists()) {
-        setStopCount(snap.data().count ?? 0);
+    const fetchCount = async () => {
+      try {
+        const snap = await getDoc(doc(db, "stats", "alarm"));
+        if (snap.exists()) {
+          setStopCount(snap.data().count ?? 0);
+        }
+      } catch (error) {
+        console.log("count fetch failed:", error);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    fetchCount();
   }, []);
 
   const clearHoldTimer = () => {
@@ -130,6 +133,18 @@ export default function App() {
       audioRef.current.currentTime = 0;
     } catch (error) {
       console.log("audio unlock failed:", error);
+    }
+  };
+
+  const fetchLatestCount = async () => {
+    try {
+      const ref = doc(db, "stats", "alarm");
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setStopCount(snap.data().count ?? 0);
+      }
+    } catch (error) {
+      console.log("latest count fetch failed:", error);
     }
   };
 
@@ -196,10 +211,20 @@ export default function App() {
       audioRef.current.currentTime = 0;
     }
 
-    const ref = doc(db, "stats", "alarm");
-    await updateDoc(ref, {
-      count: increment(1),
-    });
+    try {
+      const ref = doc(db, "stats", "alarm");
+
+      await updateDoc(ref, {
+        count: increment(1),
+      });
+
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setStopCount(snap.data().count ?? 0);
+      }
+    } catch (error) {
+      console.log("count update failed:", error);
+    }
 
     setMessage("停止しました");
 
@@ -268,8 +293,9 @@ export default function App() {
       <div className="alarm-screen">
         <div className="top-panel">
           <p className="current-time">{currentTime}</p>
+
           <p className="execution-count">
-            みんなの処刑回数：<span className="count-number">{stopCount}</span>回
+            処刑回数：<span className="count-number">{stopCount}</span>回
           </p>
 
           <input
